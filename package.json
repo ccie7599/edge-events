@@ -10,7 +10,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "express-sse": "^1.0.0",
-    "nats": "^2.29.3""
+    "nats": "^2.29.3"
   },
   "engines": {
     "node": ">=20"
