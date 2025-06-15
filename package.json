@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "express-sse": "^0.5.5",
+    "express-sse": "0.5.4",
     "nats": "^1.22.2"
   },
   "engines": {
