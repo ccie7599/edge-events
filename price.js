@@ -26,19 +26,19 @@ app.get('/price', async (req, res) => {
     const data = await fs.readFile(PRICE_FILE, 'utf8');
     res.type('application/json').send(data);
   } catch (err) {
-    console.error('❌ Error reading price file:', err);
+    console.error('Error reading price file:', err);
     res.status(500).send({ error: 'Could not read price file' });
   }
 });
 
 // Start HTTPS server
 https.createServer(options, app).listen(PORT, () => {
-  console.log(`✅ HTTPS server running on https://localhost:${PORT}`);
+  console.log(`HTTPS server running on https://localhost:${PORT}`);
 });
 
 // Connect to NATS core
 const nc = await connect({ servers: 'nats://host.docker.internal:4222' });
-console.log('✅ Connected to NATS');
+console.log('Connected to NATS');
 
 const sc = StringCodec();
 const sub = nc.subscribe('price');
@@ -64,8 +64,8 @@ for await (const msg of sub) {
     // Send update to SSE clients
     sse.send(parsed);
 
-    console.log('📨 Broadcast + file updated:', parsed);
+    console.log('Broadcast + file updated:', parsed);
   } catch (err) {
-    console.error('❌ Error processing message:', err);
+    console.error('Error processing message:', err);
   }
 }
