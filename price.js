@@ -42,7 +42,7 @@ console.log('Connected to NATS');
 
 const sc = StringCodec();
 const sub = nc.subscribe('price');
-console.log('📡 Subscribed to subject "price"`);
+console.log('Subscribed to subject "price"`);
 
 // Handle incoming NATS messages
 for await (const msg of sub) {
