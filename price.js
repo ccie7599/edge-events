@@ -4,6 +4,7 @@ import { connect, StringCodec } from 'nats';
 import fs from 'fs/promises';
 import https from 'https';
 import { readFileSync } from 'fs';
+import fetch from 'node-fetch'; // <-- added
 
 const app = express();
 const sse = new SSE();
@@ -11,16 +12,24 @@ const sse = new SSE();
 const PORT = 443;
 const PRICE_FILE = 'price';
 
-// TLS certificate and key
 const options = {
   cert: readFileSync('/certs/fullchain.pem'),
   key: readFileSync('/certs/privkey.pem'),
 };
 
-// Serve SSE stream
+// GeoIP lookup on startup
+let SERVER_GEO = { lat: null, lon: null }; // <-- added
+try {
+  const res = await fetch('http://ip-api.com/json');
+  const json = await res.json();
+  SERVER_GEO = { lat: json.lat, lon: json.lon };
+  console.log('Server geo detected:', SERVER_GEO);
+} catch (err) {
+  console.error('GeoIP lookup failed:', err);
+}
+
 app.get('/sse', sse.init);
 
-// Serve latest price from file
 app.get('/price', async (req, res) => {
   try {
     const data = await fs.readFile(PRICE_FILE, 'utf8');
@@ -31,12 +40,10 @@ app.get('/price', async (req, res) => {
   }
 });
 
-// Start HTTPS server
 https.createServer(options, app).listen(PORT, () => {
   console.log(`HTTPS server running on https://localhost:${PORT}`);
 });
 
-// Connect to NATS core
 const nc = await connect({ servers: 'nats://host.docker.internal:4222' });
 console.log('Connected to NATS');
 
@@ -44,7 +51,6 @@ const sc = StringCodec();
 const sub = nc.subscribe('price');
 console.log('Subscribed to subject "price"');
 
-// Handle incoming NATS messages
 for await (const msg of sub) {
   try {
     const decoded = sc.decode(msg.data);
@@ -56,14 +62,13 @@ for await (const msg of sub) {
       delete parsed.data;
     }
 
+    // Add geo field with lat/lon from startup lookup
+    parsed.geo = SERVER_GEO; // <-- added
+
     const jsonString = JSON.stringify(parsed);
 
-    // Overwrite the 'price' file
     await fs.writeFile(PRICE_FILE, jsonString, 'utf8');
-
-    // Send update to SSE clients
     sse.send(parsed);
-
     console.log('Broadcast + file updated:', parsed);
   } catch (err) {
     console.error('Error processing message:', err);
